@@ -104,8 +104,40 @@ async function setupAudio(){
 async function calibrate(){
   await setupAudio();
   recording = [];
-  mode = "calibrate";
+  mode = "countdown";
   running = true;
+
+  let countdownStart = performance.now();
+  statusEl.textContent = "Mach dich bereit";
+  statusEl.className = "pill";
+
+  beep(880, 120);
+
+  function countdownLoop(){
+    if (!running || mode !== "countdown") return;
+
+    const elapsed = (performance.now() - countdownStart) / 1000;
+    const left = Math.ceil(3 - elapsed);
+
+    timerEl.textContent = left > 0 ? left + "..." : "LOS!";
+
+    if (elapsed > 0.95 && elapsed < 1.05) beep(880, 80);
+    if (elapsed > 1.95 && elapsed < 2.05) beep(880, 80);
+
+    if (elapsed >= 3) {
+      beep(1400, 180);
+      mode = "calibrate";
+      startCalibrationRecording();
+      return;
+    }
+
+    requestAnimationFrame(countdownLoop);
+  }
+
+  countdownLoop();
+}
+
+function startCalibrationRecording(){
   const start = performance.now();
   statusEl.textContent = "Kalibrierung läuft";
   statusEl.className = "pill good";
@@ -127,6 +159,8 @@ async function calibrate(){
       timerEl.textContent = "fertig";
       statusEl.textContent = "Zahl eingeben";
       statusEl.className = "pill";
+      beep(1600, 280);
+      setTimeout(() => beep(1200, 220), 180);
       drawRawRecording();
       return;
     }
@@ -305,6 +339,19 @@ function drawSpectrum(freq, sampleRate){
 }
 
 function average(arr){ return arr.reduce((a,b)=>a+b,0)/Math.max(1,arr.length); }
+
+function beep(freq, duration){
+  if(!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.frequency.value = freq;
+  osc.type = "sine";
+  gain.gain.value = 0.05;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration/1000);
+}
 
 function stop(){
   running=false; mode="idle";
