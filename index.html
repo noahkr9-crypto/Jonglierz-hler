@@ -3,259 +3,289 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jonglier-Zähler</title>
-
+  <title>Jonglier-Zähler Pro</title>
   <style>
-    body {
-      margin: 0;
-      font-family: system-ui, sans-serif;
-      background: #0b0b0f;
-      color: white;
-      text-align: center;
-      padding: 24px;
-    }
-
-    h1 {
-      font-size: 110px;
-      margin: 20px 0;
-    }
-
-    button {
-      font-size: 21px;
-      padding: 15px 24px;
-      margin: 7px;
-      border: 0;
-      border-radius: 14px;
-      font-weight: 700;
-    }
-
-    .start { background: #34c759; }
-    .stop { background: #ff453a; }
-    .reset { background: #ffd60a; }
-
-    .box {
-      margin: 18px auto;
-      max-width: 420px;
-      background: #1c1c22;
-      padding: 16px;
-      border-radius: 18px;
-    }
-
-    input {
-      width: 90%;
-    }
-
-    .small {
-      color: #aaa;
-      font-size: 14px;
-    }
-
-    .meter {
-      height: 18px;
-      background: #333;
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 12px;
-    }
-
-    .bar {
-      height: 100%;
-      width: 0%;
-      background: white;
-    }
+    :root { --bg:#07080d; --card:#171923; --muted:#9aa0aa; --good:#34c759; --warn:#ffd60a; --bad:#ff453a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:white; text-align:center; padding:18px; }
+    h1 { font-size:96px; line-height:1; margin:14px 0 18px; }
+    h2 { margin:8px 0; }
+    button { font-size:19px; padding:14px 20px; margin:6px; border:0; border-radius:14px; font-weight:800; }
+    .start { background:var(--good); } .stop { background:var(--bad); color:white; } .reset { background:var(--warn); }
+    .grid { display:grid; gap:12px; max-width:760px; margin:0 auto; }
+    .box { background:var(--card); border-radius:18px; padding:14px; }
+    .row { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+    input { width:100%; }
+    .small { color:var(--muted); font-size:13px; }
+    canvas { width:100%; height:150px; background:#05060a; border-radius:14px; display:block; }
+    .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#252837; color:#ddd; font-size:13px; margin:3px; }
+    .hit { background:rgba(52,199,89,.22); color:#9dffb7; }
+    .floor { background:rgba(255,69,58,.18); color:#ffaaa5; }
   </style>
 </head>
-
 <body>
-  <h2>⚽ Jonglier-Zähler</h2>
+  <h2>⚽ Jonglier-Zähler Pro</h2>
   <h1 id="count">0</h1>
 
   <button class="start" id="start">Start</button>
   <button class="stop" id="stop">Stop</button>
   <button class="reset" id="reset">Reset</button>
 
-  <div class="box">
-    <p>Empfindlichkeit</p>
-    <input id="sensitivity" type="range" min="1" max="100" value="28">
-    <p id="sensText">28</p>
+  <div class="grid">
+    <div class="box">
+      <div class="row"><b>Status</b><span id="status" class="pill">Bereit</span></div>
+      <div>
+        <span id="hitPill" class="pill">Ball: 0%</span>
+        <span id="floorPill" class="pill">Boden: 0%</span>
+        <span id="tempoPill" class="pill">Tempo: --</span>
+      </div>
+      <p class="small">Nach Start 3 Sekunden ruhig bleiben. Danach erst 5–8 klare Ballkontakte machen, ohne viel zu laufen.</p>
+    </div>
 
-    <p>Mindestabstand zwischen Treffern</p>
-    <input id="cooldown" type="range" min="120" max="500" value="230">
-    <p id="coolText">230 ms</p>
+    <div class="box">
+      <div class="row"><b>Live-Frequenzen</b><span class="small">tiefe Tritte links, helle Ballkontakte rechts</span></div>
+      <canvas id="spectrum" width="700" height="170"></canvas>
+    </div>
+
+    <div class="box">
+      <div class="row"><b>Erkennungssignal</b><span class="small">grün = gezählter Treffer</span></div>
+      <canvas id="timeline" width="700" height="170"></canvas>
+    </div>
+
+    <div class="box">
+      <label>Empfindlichkeit: <b id="sensLabel">82</b></label>
+      <input id="sensitivity" type="range" min="20" max="140" value="82">
+      <label>Mindestabstand: <b id="coolLabel">180 ms</b></label>
+      <input id="cooldown" type="range" min="90" max="420" value="180">
+      <label>Boden-Unterdrückung: <b id="floorLabel">70</b></label>
+      <input id="floorReject" type="range" min="20" max="120" value="70">
+    </div>
   </div>
-
-  <div class="box">
-    <p>Live-Signal</p>
-    <div class="meter"><div class="bar" id="bar"></div></div>
-    <p class="small" id="status">Bereit</p>
-  </div>
-
-  <p class="small">
-    Tipp: Handy 1–2 Meter entfernt seitlich hinlegen. Erst 3 Sekunden ruhig bleiben, dann jonglieren.
-  </p>
 
 <script>
 let count = 0;
 let running = false;
 let stream = null;
 let audioCtx = null;
-
-let lastHitTime = 0;
-let noiseFloor = 0.01;
-let lastEnergy = 0;
+let lastHit = 0;
 let calibrationUntil = 0;
 
-const countEl = document.getElementById("count");
-const statusEl = document.getElementById("status");
-const barEl = document.getElementById("bar");
-const sensitivityEl = document.getElementById("sensitivity");
-const cooldownEl = document.getElementById("cooldown");
-const sensText = document.getElementById("sensText");
-const coolText = document.getElementById("coolText");
+let noise = 0.0008;
+let prevBall = 0;
+let prevLow = 0;
+let lastAcceptedTimes = [];
+let signalHistory = new Array(180).fill(0);
+let hitHistory = new Array(180).fill(false);
 
-sensitivityEl.oninput = () => sensText.textContent = sensitivityEl.value;
-cooldownEl.oninput = () => coolText.textContent = cooldownEl.value + " ms";
+const $ = id => document.getElementById(id);
+const countEl = $("count"), statusEl = $("status");
+const hitPill = $("hitPill"), floorPill = $("floorPill"), tempoPill = $("tempoPill");
+const spectrum = $("spectrum"), timeline = $("timeline");
+const sctx = spectrum.getContext("2d"), tctx = timeline.getContext("2d");
+const sensitivity = $("sensitivity"), cooldown = $("cooldown"), floorReject = $("floorReject");
 
-document.getElementById("reset").onclick = () => {
-  count = 0;
-  countEl.textContent = count;
-};
+function syncLabels(){
+  $("sensLabel").textContent = sensitivity.value;
+  $("coolLabel").textContent = cooldown.value + " ms";
+  $("floorLabel").textContent = floorReject.value;
+}
+[sensitivity, cooldown, floorReject].forEach(x => x.oninput = syncLabels);
+syncLabels();
 
-document.getElementById("stop").onclick = () => stopApp();
+$("reset").onclick = () => { count = 0; countEl.textContent = count; lastAcceptedTimes = []; };
+$("stop").onclick = stop;
+$("start").onclick = start;
 
-document.getElementById("start").onclick = async () => {
+async function start(){
   if (running) return;
-
   running = true;
   count = 0;
   countEl.textContent = count;
-  statusEl.textContent = "Kalibriere Hintergrundgeräusche...";
-
+  lastHit = 0;
+  noise = 0.0008;
+  prevBall = 0;
+  prevLow = 0;
+  lastAcceptedTimes = [];
+  signalHistory.fill(0); hitHistory.fill(false);
   calibrationUntil = performance.now() + 3000;
-  noiseFloor = 0.01;
-  lastEnergy = 0;
+  statusEl.textContent = "Kalibriere";
+  statusEl.className = "pill";
 
   stream = await navigator.mediaDevices.getUserMedia({
     audio: {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false
+      echoCancellation:false,
+      noiseSuppression:false,
+      autoGainControl:false,
+      channelCount:1
     }
   });
 
-  audioCtx = new AudioContext();
-
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const source = audioCtx.createMediaStreamSource(stream);
 
-  const highpass = audioCtx.createBiquadFilter();
-  highpass.type = "highpass";
-  highpass.frequency.value = 700;
-
   const analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 2048;
-  analyser.smoothingTimeConstant = 0.15;
+  analyser.fftSize = 4096;
+  analyser.smoothingTimeConstant = 0.05;
+  source.connect(analyser);
 
-  source.connect(highpass);
-  highpass.connect(analyser);
+  const freq = new Uint8Array(analyser.frequencyBinCount);
+  const sampleRate = audioCtx.sampleRate;
 
-  const timeData = new Uint8Array(analyser.fftSize);
-  const freqData = new Uint8Array(analyser.frequencyBinCount);
+  function bandEnergy(fromHz, toHz){
+    const nyquist = sampleRate / 2;
+    const start = Math.max(1, Math.floor(fromHz / nyquist * freq.length));
+    const end = Math.min(freq.length - 1, Math.ceil(toHz / nyquist * freq.length));
+    let sum = 0;
+    for(let i=start;i<=end;i++){
+      const v = freq[i] / 255;
+      sum += v * v;
+    }
+    return sum / Math.max(1, end - start + 1);
+  }
 
-  function loop() {
+  function loop(){
     if (!running) return;
-
-    analyser.getByteTimeDomainData(timeData);
-    analyser.getByteFrequencyData(freqData);
-
-    let energy = 0;
-    let peak = 0;
-
-    for (let i = 0; i < timeData.length; i++) {
-      const v = (timeData[i] - 128) / 128;
-      energy += v * v;
-      peak = Math.max(peak, Math.abs(v));
-    }
-
-    energy = Math.sqrt(energy / timeData.length);
-
-    let highEnergy = 0;
-    let lowEnergy = 0;
-
-    for (let i = 0; i < freqData.length; i++) {
-      const value = freqData[i] / 255;
-
-      if (i < freqData.length * 0.18) {
-        lowEnergy += value;
-      } else {
-        highEnergy += value;
-      }
-    }
-
-    const highRatio = highEnergy / Math.max(lowEnergy + highEnergy, 0.0001);
-    const attack = energy - lastEnergy;
-    lastEnergy = energy;
+    analyser.getByteFrequencyData(freq);
 
     const now = performance.now();
 
+    // Typisch: Schritte/Fußboden eher 40–300 Hz, Ballkontakt am Schuh eher kurzer, heller Anteil.
+    const subLow = bandEnergy(35, 180);
+    const low = bandEnergy(180, 650);
+    const ballMid = bandEnergy(650, 2200);
+    const ballHigh = bandEnergy(2200, 5200);
+    const hiss = bandEnergy(5200, 9000);
+
+    const floorEnergy = subLow * 1.5 + low * 1.0;
+    const ballEnergy = ballMid * 1.25 + ballHigh * 1.8;
+    const total = floorEnergy + ballEnergy + hiss + 0.000001;
+
+    const brightness = (ballMid + ballHigh * 1.4) / total;
+    const ballAttack = Math.max(0, ballEnergy - prevBall);
+    const lowAttack = Math.max(0, floorEnergy - prevLow);
+    prevBall = ballEnergy;
+    prevLow = floorEnergy;
+
     if (now < calibrationUntil) {
-      noiseFloor = noiseFloor * 0.95 + energy * 0.05;
-      barEl.style.width = Math.min(100, energy * 600) + "%";
+      noise = noise * 0.94 + ballEnergy * 0.06;
+      drawSpectrum(freq, sampleRate);
+      pushSignal(0, false);
       requestAnimationFrame(loop);
       return;
     }
 
-    const sensitivity = Number(sensitivityEl.value);
-    const cooldown = Number(cooldownEl.value);
+    // Je höher Empfindlichkeit, desto niedriger die Schwelle.
+    const sens = Number(sensitivity.value);
+    const threshold = noise * (2.25 - sens / 100);
 
-    const dynamicThreshold = noiseFloor * (1.4 + sensitivity / 35);
+    const rawBallScore = (ballAttack * 1400) + (ballEnergy * 520) + (brightness * 28);
+    const floorScore = (lowAttack * 1300) + (floorEnergy * 680) + ((1 - brightness) * 20);
 
-    const isSharp = attack > dynamicThreshold * 0.35;
-    const isLoudEnough = energy > dynamicThreshold;
-    const isBrightEnough = highRatio > 0.48;
-    const isNotTooSoon = now - lastHitTime > cooldown;
+    const floorPenalty = Number(floorReject.value) / 100;
+    const score = rawBallScore - floorScore * floorPenalty;
 
-    const score =
-      energy * 80 +
-      attack * 180 +
-      highRatio * 35;
+    // Regelmäßigkeit: Wenn vorherige Treffer ein plausibles Tempo zeigen, senken wir die Schwelle leicht.
+    const avgInterval = getAvgInterval(now);
+    const regularBoost = avgInterval ? 0.78 : 1.0;
 
-    barEl.style.width = Math.min(100, score) + "%";
+    const notTooSoon = now - lastHit > Number(cooldown.value);
+    const plausibleTempo = !avgInterval || Math.abs((now - lastHit) - avgInterval) < Math.max(220, avgInterval * 0.55);
 
-    if (isSharp && isLoudEnough && isBrightEnough && isNotTooSoon) {
+    const isBallLike =
+      ballEnergy > threshold * regularBoost &&
+      ballAttack > threshold * 0.20 &&
+      brightness > 0.36 &&
+      score > 4.8 &&
+      rawBallScore > floorScore * 0.72 &&
+      notTooSoon &&
+      plausibleTempo;
+
+    if (isBallLike) {
       count++;
       countEl.textContent = count;
-      lastHitTime = now;
-      statusEl.textContent = "Treffer erkannt";
-
-      if (navigator.vibrate) navigator.vibrate(25);
+      lastHit = now;
+      lastAcceptedTimes.push(now);
+      if (lastAcceptedTimes.length > 8) lastAcceptedTimes.shift();
+      statusEl.textContent = "Treffer";
+      statusEl.className = "pill hit";
+      if (navigator.vibrate) navigator.vibrate(18);
+    } else if (floorScore > rawBallScore * 1.1 && floorScore > 5) {
+      statusEl.textContent = "Boden ignoriert";
+      statusEl.className = "pill floor";
     } else {
-      statusEl.textContent =
-        "Signal: " + score.toFixed(1) +
-        " | Hell: " + Math.round(highRatio * 100) + "%";
+      statusEl.textContent = "lausche";
+      statusEl.className = "pill";
     }
 
-    noiseFloor = noiseFloor * 0.995 + energy * 0.005;
+    // Langsam an Umgebung anpassen, aber nicht bei starken Events.
+    if (rawBallScore < 5 && floorScore < 5) noise = noise * 0.996 + ballEnergy * 0.004;
 
+    hitPill.textContent = "Ball: " + Math.max(0, Math.min(100, rawBallScore * 4)).toFixed(0) + "%";
+    floorPill.textContent = "Boden: " + Math.max(0, Math.min(100, floorScore * 4)).toFixed(0) + "%";
+    tempoPill.textContent = avgInterval ? "Tempo: " + Math.round(avgInterval) + " ms" : "Tempo: --";
+
+    drawSpectrum(freq, sampleRate);
+    pushSignal(Math.max(0, Math.min(1, score / 20)), isBallLike);
     requestAnimationFrame(loop);
   }
-
   loop();
-};
+}
 
-function stopApp() {
+function getAvgInterval(now){
+  if (lastAcceptedTimes.length < 3) return null;
+  const gaps = [];
+  for (let i=1;i<lastAcceptedTimes.length;i++) gaps.push(lastAcceptedTimes[i] - lastAcceptedTimes[i-1]);
+  const avg = gaps.reduce((a,b)=>a+b,0) / gaps.length;
+  if (avg < 150 || avg > 1400) return null;
+  return avg;
+}
+
+function drawSpectrum(freq, sampleRate){
+  const w = spectrum.width, h = spectrum.height;
+  sctx.clearRect(0,0,w,h);
+  sctx.fillStyle = "#05060a"; sctx.fillRect(0,0,w,h);
+
+  // Bereich bis 9000 Hz logarithmisch darstellen.
+  for (let x=0; x<w; x++) {
+    const hz = 35 * Math.pow(9000/35, x/w);
+    const bin = Math.min(freq.length-1, Math.floor(hz / (sampleRate/2) * freq.length));
+    const v = freq[bin] / 255;
+    const barH = Math.pow(v, 0.65) * h;
+    sctx.fillStyle = hz < 650 ? "#ff6b63" : "#78f29a";
+    sctx.fillRect(x, h - barH, 2, barH);
+  }
+
+  sctx.fillStyle = "rgba(255,255,255,.75)";
+  sctx.font = "12px system-ui";
+  sctx.fillText("Boden / Schritte", 12, 18);
+  sctx.fillText("Ballkontakt", w - 105, 18);
+}
+
+function pushSignal(v, hit){
+  signalHistory.push(v); signalHistory.shift();
+  hitHistory.push(hit); hitHistory.shift();
+  const w = timeline.width, h = timeline.height;
+  tctx.clearRect(0,0,w,h);
+  tctx.fillStyle = "#05060a"; tctx.fillRect(0,0,w,h);
+  tctx.strokeStyle = "rgba(255,255,255,.18)";
+  tctx.beginPath(); tctx.moveTo(0,h*0.55); tctx.lineTo(w,h*0.55); tctx.stroke();
+
+  for (let i=0;i<signalHistory.length;i++){
+    const x = i / (signalHistory.length-1) * w;
+    const y = h - signalHistory[i] * h;
+    tctx.fillStyle = hitHistory[i] ? "#34c759" : "#ffffff";
+    tctx.fillRect(x, y, 3, hitHistory[i] ? h : 4);
+  }
+}
+
+function stop(){
   running = false;
   statusEl.textContent = "Gestoppt";
-
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-    stream = null;
-  }
-
-  if (audioCtx) {
-    audioCtx.close();
-    audioCtx = null;
-  }
+  statusEl.className = "pill";
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
 }
 </script>
 </body>
 </html>
+
