@@ -3,289 +3,313 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jonglier-Zähler Pro</title>
+  <title>Jonglier-Zähler Lernmodus</title>
   <style>
-    :root { --bg:#07080d; --card:#171923; --muted:#9aa0aa; --good:#34c759; --warn:#ffd60a; --bad:#ff453a; }
+    :root { --bg:#07080d; --card:#171923; --muted:#9aa0aa; --green:#34c759; --yellow:#ffd60a; --red:#ff453a; }
     * { box-sizing:border-box; }
-    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:white; text-align:center; padding:18px; }
-    h1 { font-size:96px; line-height:1; margin:14px 0 18px; }
-    h2 { margin:8px 0; }
-    button { font-size:19px; padding:14px 20px; margin:6px; border:0; border-radius:14px; font-weight:800; }
-    .start { background:var(--good); } .stop { background:var(--bad); color:white; } .reset { background:var(--warn); }
-    .grid { display:grid; gap:12px; max-width:760px; margin:0 auto; }
+    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:white; text-align:center; padding:16px; }
+    h1 { font-size:92px; line-height:1; margin:14px 0; }
+    h2 { margin:8px 0 4px; }
+    button { font-size:18px; padding:13px 18px; margin:6px; border:0; border-radius:14px; font-weight:800; }
+    input { font-size:20px; padding:10px; border-radius:12px; border:0; width:110px; text-align:center; }
+    .start { background:var(--green); } .stop { background:var(--red); color:white; } .reset { background:var(--yellow); }
+    .blue { background:#0a84ff; color:white; }
+    .grid { display:grid; gap:12px; max-width:820px; margin:0 auto; }
     .box { background:var(--card); border-radius:18px; padding:14px; }
-    .row { display:flex; justify-content:space-between; gap:12px; align-items:center; }
-    input { width:100%; }
     .small { color:var(--muted); font-size:13px; }
-    canvas { width:100%; height:150px; background:#05060a; border-radius:14px; display:block; }
     .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#252837; color:#ddd; font-size:13px; margin:3px; }
-    .hit { background:rgba(52,199,89,.22); color:#9dffb7; }
-    .floor { background:rgba(255,69,58,.18); color:#ffaaa5; }
+    .good { background:rgba(52,199,89,.22); color:#a8ffbd; }
+    .bad { background:rgba(255,69,58,.18); color:#ffb4ae; }
+    canvas { width:100%; height:160px; background:#05060a; border-radius:14px; display:block; }
+    .row { display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; }
   </style>
 </head>
 <body>
-  <h2>⚽ Jonglier-Zähler Pro</h2>
+  <h2>⚽ Jonglier-Zähler Lernmodus</h2>
   <h1 id="count">0</h1>
 
-  <button class="start" id="start">Start</button>
-  <button class="stop" id="stop">Stop</button>
-  <button class="reset" id="reset">Reset</button>
+  <div class="row">
+    <button class="blue" id="calibrate">10 Sek. kalibrieren</button>
+    <button class="start" id="start">Live starten</button>
+    <button class="stop" id="stop">Stop</button>
+    <button class="reset" id="reset">Reset</button>
+  </div>
 
   <div class="grid">
     <div class="box">
-      <div class="row"><b>Status</b><span id="status" class="pill">Bereit</span></div>
-      <div>
-        <span id="hitPill" class="pill">Ball: 0%</span>
-        <span id="floorPill" class="pill">Boden: 0%</span>
-        <span id="tempoPill" class="pill">Tempo: --</span>
+      <div class="row">
+        <span class="pill" id="status">Bereit</span>
+        <span class="pill" id="profile">Kein Profil</span>
+        <span class="pill" id="timer">--</span>
       </div>
-      <p class="small">Nach Start 3 Sekunden ruhig bleiben. Danach erst 5–8 klare Ballkontakte machen, ohne viel zu laufen.</p>
+      <p class="small">Kalibrierung: Du jonglierst 10 Sekunden und zählst selbst. Danach Zahl eingeben.</p>
+      <div class="row">
+        <label>Gezählt:</label>
+        <input id="manualCount" type="number" min="1" placeholder="z.B. 12">
+        <button class="blue" id="learn">Profil berechnen</button>
+      </div>
     </div>
 
     <div class="box">
-      <div class="row"><b>Live-Frequenzen</b><span class="small">tiefe Tritte links, helle Ballkontakte rechts</span></div>
-      <canvas id="spectrum" width="700" height="170"></canvas>
+      <b>Analyse / gefundene Peaks</b>
+      <canvas id="timeline" width="760" height="180"></canvas>
+      <p class="small" id="debug">Noch keine Daten.</p>
     </div>
 
     <div class="box">
-      <div class="row"><b>Erkennungssignal</b><span class="small">grün = gezählter Treffer</span></div>
-      <canvas id="timeline" width="700" height="170"></canvas>
-    </div>
-
-    <div class="box">
-      <label>Empfindlichkeit: <b id="sensLabel">82</b></label>
-      <input id="sensitivity" type="range" min="20" max="140" value="82">
-      <label>Mindestabstand: <b id="coolLabel">180 ms</b></label>
-      <input id="cooldown" type="range" min="90" max="420" value="180">
-      <label>Boden-Unterdrückung: <b id="floorLabel">70</b></label>
-      <input id="floorReject" type="range" min="20" max="120" value="70">
+      <b>Live-Frequenzen</b>
+      <canvas id="spectrum" width="760" height="180"></canvas>
     </div>
   </div>
 
 <script>
-let count = 0;
+let audioCtx, analyser, stream, freq;
 let running = false;
-let stream = null;
-let audioCtx = null;
+let mode = "idle";
+let count = 0;
 let lastHit = 0;
-let calibrationUntil = 0;
 
-let noise = 0.0008;
-let prevBall = 0;
-let prevLow = 0;
-let lastAcceptedTimes = [];
-let signalHistory = new Array(180).fill(0);
-let hitHistory = new Array(180).fill(false);
+let recording = [];
+let profile = null;
+let liveSignal = [];
+let liveHits = [];
+
+const bands = [
+  [40,120], [120,250], [250,500], [500,900], [900,1500],
+  [1500,2500], [2500,4000], [4000,6500], [6500,9500]
+];
 
 const $ = id => document.getElementById(id);
-const countEl = $("count"), statusEl = $("status");
-const hitPill = $("hitPill"), floorPill = $("floorPill"), tempoPill = $("tempoPill");
-const spectrum = $("spectrum"), timeline = $("timeline");
-const sctx = spectrum.getContext("2d"), tctx = timeline.getContext("2d");
-const sensitivity = $("sensitivity"), cooldown = $("cooldown"), floorReject = $("floorReject");
+const countEl = $("count"), statusEl = $("status"), profileEl = $("profile"), timerEl = $("timer"), debugEl = $("debug");
+const tctx = $("timeline").getContext("2d"), sctx = $("spectrum").getContext("2d");
 
-function syncLabels(){
-  $("sensLabel").textContent = sensitivity.value;
-  $("coolLabel").textContent = cooldown.value + " ms";
-  $("floorLabel").textContent = floorReject.value;
-}
-[sensitivity, cooldown, floorReject].forEach(x => x.oninput = syncLabels);
-syncLabels();
-
-$("reset").onclick = () => { count = 0; countEl.textContent = count; lastAcceptedTimes = []; };
+$("reset").onclick = () => { count = 0; countEl.textContent = count; liveSignal=[]; liveHits=[]; drawTimeline([],[]); };
 $("stop").onclick = stop;
-$("start").onclick = start;
+$("calibrate").onclick = calibrate;
+$("learn").onclick = learnProfile;
+$("start").onclick = startLive;
 
-async function start(){
-  if (running) return;
-  running = true;
-  count = 0;
-  countEl.textContent = count;
-  lastHit = 0;
-  noise = 0.0008;
-  prevBall = 0;
-  prevLow = 0;
-  lastAcceptedTimes = [];
-  signalHistory.fill(0); hitHistory.fill(false);
-  calibrationUntil = performance.now() + 3000;
-  statusEl.textContent = "Kalibriere";
-  statusEl.className = "pill";
-
-  stream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation:false,
-      noiseSuppression:false,
-      autoGainControl:false,
-      channelCount:1
-    }
-  });
-
+async function setupAudio(){
+  if (audioCtx) return;
+  stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:1 }});
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const source = audioCtx.createMediaStreamSource(stream);
-
-  const analyser = audioCtx.createAnalyser();
+  analyser = audioCtx.createAnalyser();
   analyser.fftSize = 4096;
-  analyser.smoothingTimeConstant = 0.05;
+  analyser.smoothingTimeConstant = 0.02;
   source.connect(analyser);
+  freq = new Uint8Array(analyser.frequencyBinCount);
+}
 
-  const freq = new Uint8Array(analyser.frequencyBinCount);
-  const sampleRate = audioCtx.sampleRate;
-
-  function bandEnergy(fromHz, toHz){
-    const nyquist = sampleRate / 2;
-    const start = Math.max(1, Math.floor(fromHz / nyquist * freq.length));
-    const end = Math.min(freq.length - 1, Math.ceil(toHz / nyquist * freq.length));
-    let sum = 0;
-    for(let i=start;i<=end;i++){
-      const v = freq[i] / 255;
-      sum += v * v;
-    }
-    return sum / Math.max(1, end - start + 1);
-  }
+async function calibrate(){
+  await setupAudio();
+  recording = [];
+  mode = "calibrate";
+  running = true;
+  const start = performance.now();
+  statusEl.textContent = "Kalibrierung läuft";
+  statusEl.className = "pill good";
 
   function loop(){
-    if (!running) return;
-    analyser.getByteFrequencyData(freq);
-
+    if (!running || mode !== "calibrate") return;
     const now = performance.now();
+    const left = Math.max(0, 10 - (now-start)/1000);
+    timerEl.textContent = left.toFixed(1) + " s";
 
-    // Typisch: Schritte/Fußboden eher 40–300 Hz, Ballkontakt am Schuh eher kurzer, heller Anteil.
-    const subLow = bandEnergy(35, 180);
-    const low = bandEnergy(180, 650);
-    const ballMid = bandEnergy(650, 2200);
-    const ballHigh = bandEnergy(2200, 5200);
-    const hiss = bandEnergy(5200, 9000);
+    analyser.getByteFrequencyData(freq);
+    const features = extractFeatures(freq, audioCtx.sampleRate);
+    recording.push({ t: now-start, features });
+    drawSpectrum(freq, audioCtx.sampleRate);
 
-    const floorEnergy = subLow * 1.5 + low * 1.0;
-    const ballEnergy = ballMid * 1.25 + ballHigh * 1.8;
-    const total = floorEnergy + ballEnergy + hiss + 0.000001;
-
-    const brightness = (ballMid + ballHigh * 1.4) / total;
-    const ballAttack = Math.max(0, ballEnergy - prevBall);
-    const lowAttack = Math.max(0, floorEnergy - prevLow);
-    prevBall = ballEnergy;
-    prevLow = floorEnergy;
-
-    if (now < calibrationUntil) {
-      noise = noise * 0.94 + ballEnergy * 0.06;
-      drawSpectrum(freq, sampleRate);
-      pushSignal(0, false);
-      requestAnimationFrame(loop);
+    if (left <= 0) {
+      running = false;
+      mode = "idle";
+      timerEl.textContent = "fertig";
+      statusEl.textContent = "Zahl eingeben";
+      statusEl.className = "pill";
+      drawRawRecording();
       return;
     }
-
-    // Je höher Empfindlichkeit, desto niedriger die Schwelle.
-    const sens = Number(sensitivity.value);
-    const threshold = noise * (2.25 - sens / 100);
-
-    const rawBallScore = (ballAttack * 1400) + (ballEnergy * 520) + (brightness * 28);
-    const floorScore = (lowAttack * 1300) + (floorEnergy * 680) + ((1 - brightness) * 20);
-
-    const floorPenalty = Number(floorReject.value) / 100;
-    const score = rawBallScore - floorScore * floorPenalty;
-
-    // Regelmäßigkeit: Wenn vorherige Treffer ein plausibles Tempo zeigen, senken wir die Schwelle leicht.
-    const avgInterval = getAvgInterval(now);
-    const regularBoost = avgInterval ? 0.78 : 1.0;
-
-    const notTooSoon = now - lastHit > Number(cooldown.value);
-    const plausibleTempo = !avgInterval || Math.abs((now - lastHit) - avgInterval) < Math.max(220, avgInterval * 0.55);
-
-    const isBallLike =
-      ballEnergy > threshold * regularBoost &&
-      ballAttack > threshold * 0.20 &&
-      brightness > 0.36 &&
-      score > 4.8 &&
-      rawBallScore > floorScore * 0.72 &&
-      notTooSoon &&
-      plausibleTempo;
-
-    if (isBallLike) {
-      count++;
-      countEl.textContent = count;
-      lastHit = now;
-      lastAcceptedTimes.push(now);
-      if (lastAcceptedTimes.length > 8) lastAcceptedTimes.shift();
-      statusEl.textContent = "Treffer";
-      statusEl.className = "pill hit";
-      if (navigator.vibrate) navigator.vibrate(18);
-    } else if (floorScore > rawBallScore * 1.1 && floorScore > 5) {
-      statusEl.textContent = "Boden ignoriert";
-      statusEl.className = "pill floor";
-    } else {
-      statusEl.textContent = "lausche";
-      statusEl.className = "pill";
-    }
-
-    // Langsam an Umgebung anpassen, aber nicht bei starken Events.
-    if (rawBallScore < 5 && floorScore < 5) noise = noise * 0.996 + ballEnergy * 0.004;
-
-    hitPill.textContent = "Ball: " + Math.max(0, Math.min(100, rawBallScore * 4)).toFixed(0) + "%";
-    floorPill.textContent = "Boden: " + Math.max(0, Math.min(100, floorScore * 4)).toFixed(0) + "%";
-    tempoPill.textContent = avgInterval ? "Tempo: " + Math.round(avgInterval) + " ms" : "Tempo: --";
-
-    drawSpectrum(freq, sampleRate);
-    pushSignal(Math.max(0, Math.min(1, score / 20)), isBallLike);
     requestAnimationFrame(loop);
   }
   loop();
 }
 
-function getAvgInterval(now){
-  if (lastAcceptedTimes.length < 3) return null;
-  const gaps = [];
-  for (let i=1;i<lastAcceptedTimes.length;i++) gaps.push(lastAcceptedTimes[i] - lastAcceptedTimes[i-1]);
-  const avg = gaps.reduce((a,b)=>a+b,0) / gaps.length;
-  if (avg < 150 || avg > 1400) return null;
-  return avg;
+function learnProfile(){
+  const target = Number($("manualCount").value);
+  if (!recording.length || !target) {
+    alert("Erst 10 Sekunden kalibrieren und dann deine gezählte Zahl eingeben.");
+    return;
+  }
+
+  let best = null;
+  const candidates = [];
+
+  for (let b=0; b<bands.length; b++) {
+    const series = recording.map(r => r.features[b]);
+    const smooth = smoothSeries(series, 2);
+    const max = Math.max(...smooth), min = Math.min(...smooth);
+    for (let q=0.55; q<=0.96; q+=0.025) {
+      const threshold = min + (max-min)*q;
+      for (const minGap of [110,140,170,210,250,300,360]) {
+        const peaks = findPeaks(smooth, threshold, minGap);
+        const error = Math.abs(peaks.length - target);
+        const contrast = (max-min) / Math.max(0.000001, average(smooth));
+        const score = error * 100 - contrast * 8 + Math.abs(peaks.length-target)*20;
+        candidates.push({ b, threshold, minGap, peaks, error, score, contrast });
+      }
+    }
+  }
+
+  candidates.sort((a,b) => a.score - b.score);
+  best = candidates[0];
+
+  profile = {
+    band: best.b,
+    bandHz: bands[best.b],
+    threshold: best.threshold,
+    minGap: best.minGap,
+    expected: target,
+    peaks: best.peaks
+  };
+
+  profileEl.textContent = `${profile.bandHz[0]}–${profile.bandHz[1]} Hz | ${profile.minGap} ms`;
+  profileEl.className = "pill good";
+  statusEl.textContent = `Profil: ${best.peaks.length}/${target}`;
+  debugEl.textContent = `Bestes Band: ${profile.bandHz[0]}–${profile.bandHz[1]} Hz, Schwelle: ${profile.threshold.toFixed(5)}, Mindestabstand: ${profile.minGap} ms. Gefundene Peaks in Testaufnahme: ${best.peaks.length}.`;
+
+  const sig = recording.map(r => r.features[profile.band]);
+  drawTimeline(sig, profile.peaks.map(p => p.index));
+}
+
+async function startLive(){
+  if (!profile) {
+    alert("Bitte erst kalibrieren und Profil berechnen.");
+    return;
+  }
+  await setupAudio();
+  running = true;
+  mode = "live";
+  count = 0;
+  countEl.textContent = count;
+  lastHit = 0;
+  liveSignal=[]; liveHits=[];
+  statusEl.textContent = "Live";
+  statusEl.className = "pill good";
+
+  function loop(){
+    if (!running || mode !== "live") return;
+    const now = performance.now();
+    analyser.getByteFrequencyData(freq);
+    const features = extractFeatures(freq, audioCtx.sampleRate);
+    const value = features[profile.band];
+
+    const recent = liveSignal.slice(-3);
+    const prev = recent.length ? average(recent) : 0;
+    const attack = value - prev;
+    const hit = value > profile.threshold && attack > profile.threshold*0.10 && now-lastHit > profile.minGap;
+
+    if (hit) {
+      count++;
+      countEl.textContent = count;
+      lastHit = now;
+      if (navigator.vibrate) navigator.vibrate(18);
+    }
+
+    liveSignal.push(value);
+    liveHits.push(hit);
+    if (liveSignal.length > 220) { liveSignal.shift(); liveHits.shift(); }
+
+    drawSpectrum(freq, audioCtx.sampleRate);
+    drawTimeline(liveSignal, liveHits.map((h,i)=>h?i:null).filter(i=>i!==null));
+    debugEl.textContent = `Live-Wert: ${value.toFixed(5)} | Schwelle: ${profile.threshold.toFixed(5)} | Band: ${profile.bandHz[0]}–${profile.bandHz[1]} Hz`;
+    requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function extractFeatures(freq, sampleRate){
+  return bands.map(([from,to]) => bandEnergy(freq, sampleRate, from, to));
+}
+
+function bandEnergy(freq, sampleRate, fromHz, toHz){
+  const nyquist = sampleRate/2;
+  const start = Math.max(1, Math.floor(fromHz/nyquist*freq.length));
+  const end = Math.min(freq.length-1, Math.ceil(toHz/nyquist*freq.length));
+  let sum = 0;
+  for(let i=start;i<=end;i++){
+    const v = freq[i]/255;
+    sum += v*v;
+  }
+  return sum / Math.max(1,end-start+1);
+}
+
+function smoothSeries(arr, radius){
+  return arr.map((_,i)=>{
+    let s=0,n=0;
+    for(let j=i-radius;j<=i+radius;j++) if(arr[j]!==undefined){s+=arr[j];n++;}
+    return s/n;
+  });
+}
+
+function findPeaks(series, threshold, minGapMs){
+  const peaks=[];
+  let lastT=-99999;
+  for(let i=1;i<series.length-1;i++){
+    const t = recording[i]?.t ?? i*16;
+    if(series[i] > threshold && series[i] > series[i-1] && series[i] >= series[i+1] && t-lastT > minGapMs){
+      peaks.push({index:i,t,value:series[i]});
+      lastT=t;
+    }
+  }
+  return peaks;
+}
+
+function drawRawRecording(){
+  const sums = recording.map(r => r.features.reduce((a,b)=>a+b,0));
+  drawTimeline(sums, []);
+  debugEl.textContent = "Aufnahme fertig. Gib jetzt deine selbst gezählte Trefferzahl ein und tippe auf „Profil berechnen“.";
+}
+
+function drawTimeline(series, peakIndexes){
+  const canvas = $("timeline"), w=canvas.width, h=canvas.height;
+  tctx.clearRect(0,0,w,h);
+  tctx.fillStyle="#05060a"; tctx.fillRect(0,0,w,h);
+  if(!series.length) return;
+  const max=Math.max(...series,0.000001), min=Math.min(...series);
+  tctx.strokeStyle="white"; tctx.beginPath();
+  series.forEach((v,i)=>{
+    const x=i/(series.length-1)*w;
+    const y=h-((v-min)/(max-min+0.000001))*h;
+    if(i===0)tctx.moveTo(x,y); else tctx.lineTo(x,y);
+  });
+  tctx.stroke();
+  tctx.fillStyle="#34c759";
+  peakIndexes.forEach(i=>{
+    const x=i/(series.length-1)*w;
+    tctx.fillRect(x-2,0,4,h);
+  });
 }
 
 function drawSpectrum(freq, sampleRate){
-  const w = spectrum.width, h = spectrum.height;
+  const canvas=$("spectrum"), w=canvas.width, h=canvas.height;
   sctx.clearRect(0,0,w,h);
-  sctx.fillStyle = "#05060a"; sctx.fillRect(0,0,w,h);
-
-  // Bereich bis 9000 Hz logarithmisch darstellen.
-  for (let x=0; x<w; x++) {
-    const hz = 35 * Math.pow(9000/35, x/w);
-    const bin = Math.min(freq.length-1, Math.floor(hz / (sampleRate/2) * freq.length));
-    const v = freq[bin] / 255;
-    const barH = Math.pow(v, 0.65) * h;
-    sctx.fillStyle = hz < 650 ? "#ff6b63" : "#78f29a";
-    sctx.fillRect(x, h - barH, 2, barH);
-  }
-
-  sctx.fillStyle = "rgba(255,255,255,.75)";
-  sctx.font = "12px system-ui";
-  sctx.fillText("Boden / Schritte", 12, 18);
-  sctx.fillText("Ballkontakt", w - 105, 18);
-}
-
-function pushSignal(v, hit){
-  signalHistory.push(v); signalHistory.shift();
-  hitHistory.push(hit); hitHistory.shift();
-  const w = timeline.width, h = timeline.height;
-  tctx.clearRect(0,0,w,h);
-  tctx.fillStyle = "#05060a"; tctx.fillRect(0,0,w,h);
-  tctx.strokeStyle = "rgba(255,255,255,.18)";
-  tctx.beginPath(); tctx.moveTo(0,h*0.55); tctx.lineTo(w,h*0.55); tctx.stroke();
-
-  for (let i=0;i<signalHistory.length;i++){
-    const x = i / (signalHistory.length-1) * w;
-    const y = h - signalHistory[i] * h;
-    tctx.fillStyle = hitHistory[i] ? "#34c759" : "#ffffff";
-    tctx.fillRect(x, y, 3, hitHistory[i] ? h : 4);
+  sctx.fillStyle="#05060a"; sctx.fillRect(0,0,w,h);
+  for(let x=0;x<w;x++){
+    const hz = 40*Math.pow(9500/40,x/w);
+    const bin = Math.min(freq.length-1, Math.floor(hz/(sampleRate/2)*freq.length));
+    const v = Math.pow(freq[bin]/255,0.65);
+    sctx.fillStyle = hz < 500 ? "#ff6b63" : "#7dff9d";
+    sctx.fillRect(x,h-v*h,2,v*h);
   }
 }
+
+function average(arr){ return arr.reduce((a,b)=>a+b,0)/Math.max(1,arr.length); }
 
 function stop(){
-  running = false;
-  statusEl.textContent = "Gestoppt";
-  statusEl.className = "pill";
-  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  running=false; mode="idle";
+  statusEl.textContent="Gestoppt"; statusEl.className="pill";
 }
 </script>
 </body>
 </html>
-
