@@ -1,401 +1,315 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jonglier-Zähler Kamera Pro</title>
-  <style>
-    :root { --bg:#06070c; --card:#171923; --muted:#9aa0aa; --green:#34c759; --yellow:#ffd60a; --red:#ff453a; --blue:#0a84ff; }
-    * { box-sizing:border-box; }
-    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:white; text-align:center; padding:14px; }
-    h1 { font-size:86px; line-height:1; margin:10px 0; }
-    h2 { margin:8px 0; }
-    button { font-size:17px; padding:12px 16px; margin:5px; border:0; border-radius:14px; font-weight:800; }
-    .start { background:var(--green); } .stop { background:var(--red); color:white; } .reset { background:var(--yellow); } .blue { background:var(--blue); color:white; }
-    .grid { display:grid; gap:12px; max-width:860px; margin:0 auto; }
-    .box { background:var(--card); border-radius:18px; padding:12px; }
-    .small { color:var(--muted); font-size:13px; }
-    .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#252837; color:#ddd; font-size:13px; margin:3px; }
-    .good { background:rgba(52,199,89,.22); color:#a8ffbd; }
-    .bad { background:rgba(255,69,58,.18); color:#ffb4ae; }
-    .row { display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap; }
-    .stage { position:relative; width:100%; max-width:820px; margin:0 auto; border-radius:18px; overflow:hidden; background:#000; }
-    video, canvas { width:100%; display:block; }
-    #overlay { position:absolute; inset:0; }
-    input[type="range"] { width:100%; max-width:500px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tischtennis Jonglier-Counter</title>
+<style>
+:root{
+    --bg:#0f172a;
+    --card:#1e293b;
+    --accent:#38bdf8;
+    --accent2:#22c55e;
+    --text:#f8fafc;
+    --muted:#94a3b8;
+}
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
+}
+body{
+    background:linear-gradient(135deg,#020617,#0f172a);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+.container{
+    width:100%;
+    max-width:700px;
+}
+.card{
+    background:rgba(30,41,59,.9);
+    backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:24px;
+    padding:24px;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);
+}
+h1{
+    text-align:center;
+    margin-bottom:20px;
+    font-size:2rem;
+}
+.counter{
+    text-align:center;
+    font-size:6rem;
+    font-weight:800;
+    color:var(--accent);
+    margin:20px 0;
+}
+.status{
+    text-align:center;
+    color:var(--muted);
+    margin-bottom:15px;
+}
+.controls{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-bottom:20px;
+}
+button{
+    border:none;
+    border-radius:16px;
+    padding:16px;
+    font-size:1rem;
+    font-weight:700;
+    cursor:pointer;
+}
+.start{
+    background:var(--accent2);
+    color:white;
+}
+.stop{
+    background:#ef4444;
+    color:white;
+}
+.reset{
+    background:#334155;
+    color:white;
+    grid-column:span 2;
+}
+.section{
+    margin-top:20px;
+}
+label{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+    font-size:.95rem;
+}
+input[type=range]{
+    width:100%;
+    margin-bottom:20px;
+}
+.meterWrap{
+    background:#0f172a;
+    border-radius:14px;
+    overflow:hidden;
+    height:26px;
+}
+.meter{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#22c55e,#38bdf8);
+    transition:width .05s linear;
+}
+.info{
+    margin-top:18px;
+    color:var(--muted);
+    font-size:.9rem;
+    line-height:1.5;
+}
+.hitFlash{
+    animation:flash .15s ease;
+}
+@keyframes flash{
+    from{transform:scale(1.08);}
+    to{transform:scale(1);}
+}
+</style>
 </head>
 <body>
-  <h2>⚽ Kamera-Jonglier-Zähler Pro</h2>
-  <h1 id="count">0</h1>
-
-  <div class="row">
-    <button class="blue" id="camera">Kamera starten</button>
-    <button class="blue" id="sample">Ball lernen</button>
-    <button class="start" id="start">Zählen starten</button>
-    <button class="stop" id="stop">Stop</button>
-    <button class="reset" id="reset">Reset</button>
-  </div>
-
-  <div class="grid">
-    <div class="box">
-      <span id="status" class="pill">Bereit</span>
-      <span id="track" class="pill">Ball nicht gelernt</span>
-      <span id="direction" class="pill">Richtung: --</span>
-      <span id="quality" class="pill">Qualität: --</span>
-      <p class="small">Stell das Handy seitlich auf. Der Ball sollte sich deutlich vom Hintergrund unterscheiden. Zum Lernen den Ball möglichst groß ins Bild halten und antippen.</p>
-    </div>
-
-    <div class="stage">
-      <video id="video" playsinline autoplay muted></video>
-      <canvas id="overlay"></canvas>
-    </div>
-
-    <div class="box">
-      <label>Farb-Toleranz: <b id="tolLabel">62</b></label><br>
-      <input id="tolerance" type="range" min="20" max="140" value="62">
-      <br><br>
-      <label>Zähllinie Höhe: <b id="lineLabel">56%</b></label><br>
-      <input id="lineY" type="range" min="25" max="85" value="56">
-      <br><br>
-      <label>Min. Ballgröße: <b id="sizeLabel">18</b></label><br>
-      <input id="minSize" type="range" min="6" max="80" value="18">
-      <p class="small">Neu: Die App sucht nach zusammenhängenden Farbflächen, ignoriert kleine Störungen, glättet die Ballposition und zählt nur eine saubere Aufwärtsbewegung durch die Linie.</p>
-    </div>
-  </div>
-
+<div class="container">
+<div class="card">
+<h1>🏓 Jonglier Counter</h1>
+<div class="counter" id="counter">0</div>
+<div class="status" id="status">
+Bereit
+</div>
+<div class="controls">
+<button class="start" id="startBtn">
+🎤 Start
+</button>
+<button class="stop" id="stopBtn">
+⏹ Stop
+</button>
+<button class="reset" id="resetBtn">
+🔄 Reset
+</button>
+</div>
+<div class="section">
+<label>
+<span>Empfindlichkeit</span>
+<span id="sensitivityValue">1.5</span>
+</label>
+<label>
+<span>Schwelle</span>
+<span id="thresholdValue">30</span>
+</label>
+<label>
+<span>Mindestabstand (ms)</span>
+<span id="cooldownValue">120</span>
+</label>
+</div>
+<div class="section">
+<label>
+<span>Aktuelle Lautstärke</span>
+<span id="volumeText">0</span>
+</label>
+<div class="meterWrap">
+<div class="meter" id="meter"></div>
+</div>
+</div>
+<div class="info">
+Tipp: Stelle das iPhone 30–80 cm entfernt auf. <br>
+Falls doppelt gezählt wird, erhöhe den Mindestabstand. <br>
+Falls Treffer fehlen, erhöhe die Empfindlichkeit oder senke die Schwelle.
+</div>
+</div>
+</div>
 <script>
-const $ = id => document.getElementById(id);
-const video = $('video');
-const overlay = $('overlay');
-const ctx = overlay.getContext('2d', { willReadFrequently:true });
-
-let stream = null;
+let audioContext;
+let analyser;
+let microphone;
+let dataArray;
+let animationFrame;
 let running = false;
-let sampling = false;
 let count = 0;
-let targetColor = null;
-let lastBall = null;
-let smoothBall = null;
-let lastY = null;
-let lastDirection = null;
-let lastCrossTime = 0;
-let ballSeenFrames = 0;
-let lostFrames = 0;
-let recentY = [];
-let searchBox = null;
-let samplePatchRadius = 16;
-
-$('reset').onclick = () => {
-  count = 0;
-  $('count').textContent = count;
-  lastY = null;
-  lastDirection = null;
-  lastCrossTime = 0;
-  recentY = [];
-};
-
-$('stop').onclick = () => {
-  running = false;
-  $('status').textContent = 'Gestoppt';
-  $('status').className = 'pill';
-};
-
-$('camera').onclick = startCamera;
-$('sample').onclick = () => {
-  sampling = true;
-  $('status').textContent = 'Tippe auf den Ball';
-  $('status').className = 'pill good';
-};
-
-$('start').onclick = () => {
-  if (!targetColor) { alert('Bitte zuerst Ball lernen.'); return; }
-  count = 0;
-  $('count').textContent = count;
-  running = true;
-  lastY = null;
-  lastDirection = null;
-  lastCrossTime = 0;
-  recentY = [];
-  $('status').textContent = 'Zählt';
-  $('status').className = 'pill good';
-};
-
-$('tolerance').oninput = () => $('tolLabel').textContent = $('tolerance').value;
-$('lineY').oninput = () => $('lineLabel').textContent = $('lineY').value + '%';
-$('minSize').oninput = () => $('sizeLabel').textContent = $('minSize').value;
-
-async function startCamera(){
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: 'environment',
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-      frameRate: { ideal: 60, min: 30 }
-    },
-    audio: false
-  });
-  video.srcObject = stream;
-  await video.play();
-  resizeCanvas();
-  $('status').textContent = 'Kamera läuft';
-  $('status').className = 'pill good';
-  requestAnimationFrame(loop);
+let lastHitTime = 0;
+let previousVolume = 0;
+const counter = document.getElementById("counter");
+const meter = document.getElementById("meter");
+const volumeText = document.getElementById("volumeText");
+const statusText = document.getElementById("status");
+const thresholdSlider = document.getElementById("threshold");
+const sensitivitySlider = document.getElementById("sensitivity");
+const cooldownSlider = document.getElementById("cooldown");
+function updateLabels(){
+    document.getElementById("thresholdValue").textContent =
+        thresholdSlider.value;
+    document.getElementById("sensitivityValue").textContent =
+        sensitivitySlider.value;
+    document.getElementById("cooldownValue").textContent =
+        cooldownSlider.value;
 }
-
-function resizeCanvas(){
-  overlay.width = video.videoWidth || 640;
-  overlay.height = video.videoHeight || 480;
-}
-
-overlay.addEventListener('click', e => {
-  if (!sampling) return;
-  const rect = overlay.getBoundingClientRect();
-  const x = Math.round((e.clientX - rect.left) / rect.width * overlay.width);
-  const y = Math.round((e.clientY - rect.top) / rect.height * overlay.height);
-
-  ctx.drawImage(video, 0, 0, overlay.width, overlay.height);
-  const r0 = Math.max(0, x - samplePatchRadius);
-  const y0 = Math.max(0, y - samplePatchRadius);
-  const sw = Math.min(overlay.width - r0, samplePatchRadius * 2 + 1);
-  const sh = Math.min(overlay.height - y0, samplePatchRadius * 2 + 1);
-  const patch = ctx.getImageData(r0, y0, sw, sh).data;
-
-  // Robuster Mittelwert: sehr dunkle/helle Ausreißer werden weniger stark gewichtet.
-  let r=0,g=0,b=0,n=0;
-  for(let i=0;i<patch.length;i+=4){
-    const rr=patch[i], gg=patch[i+1], bb=patch[i+2];
-    const brightness = rr + gg + bb;
-    if (brightness < 35 || brightness > 735) continue;
-    r+=rr; g+=gg; b+=bb; n++;
-  }
-  if (n < 20) {
-    alert('Ball nicht gut erfasst. Bitte nochmal antippen, möglichst mittig auf dem Ball.');
-    return;
-  }
-
-  targetColor = { r:r/n, g:g/n, b:b/n };
-  sampling = false;
-  searchBox = null;
-  lastBall = null;
-  smoothBall = null;
-  $('track').textContent = `Ball gelernt RGB ${Math.round(targetColor.r)},${Math.round(targetColor.g)},${Math.round(targetColor.b)}`;
-  $('track').className = 'pill good';
-  $('status').textContent = 'Ball gelernt';
-});
-
-function loop(){
-  if (!video.videoWidth) { requestAnimationFrame(loop); return; }
-  if (overlay.width !== video.videoWidth) resizeCanvas();
-
-  ctx.drawImage(video, 0, 0, overlay.width, overlay.height);
-
-  const w = overlay.width, h = overlay.height;
-  const lineY = h * Number($('lineY').value) / 100;
-  let ball = null;
-
-  if (targetColor) ball = findBall(w, h);
-  if (ball) ball = smoothPosition(ball);
-
-  drawOverlay(ball, lineY);
-
-  if (running && ball) updateCounter(ball, lineY);
-
-  requestAnimationFrame(loop);
-}
-
-function findBall(w, h){
-  const scale = 4;
-  const data = ctx.getImageData(0, 0, w, h).data;
-  const tol = Number($('tolerance').value);
-  const minSize = Number($('minSize').value);
-
-  let x0=0, y0=0, x1=w, y1=h;
-  if (searchBox && lostFrames < 12) {
-    x0 = Math.max(0, Math.floor(searchBox.x0));
-    y0 = Math.max(0, Math.floor(searchBox.y0));
-    x1 = Math.min(w, Math.ceil(searchBox.x1));
-    y1 = Math.min(h, Math.ceil(searchBox.y1));
-  }
-
-  const candidates = [];
-
-  for(let y=y0; y<y1; y+=scale){
-    for(let x=x0; x<x1; x+=scale){
-      const i = (y*w + x) * 4;
-      const r = data[i], g = data[i+1], b = data[i+2];
-      if (isSimilarColor(r,g,b,tol)) candidates.push({x,y});
+updateLabels();
+thresholdSlider.oninput = updateLabels;
+sensitivitySlider.oninput = updateLabels;
+cooldownSlider.oninput = updateLabels;
+async function startListening(){
+    if(running) return;
+    try{
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+                audio:true
+            });
+        audioContext =
+            new (window.AudioContext ||
+            window.webkitAudioContext)();
+        analyser =
+            audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        microphone =
+            audioContext.createMediaStreamSource(stream);
+        microphone.connect(analyser);
+        dataArray =
+            new Uint8Array(analyser.frequencyBinCount);
+        running = true;
+        statusText.textContent =
+            "🎧 Mikrofon aktiv";
+        detectHits();
+    }catch(err){
+        statusText.textContent =
+            "❌ Mikrofon-Zugriff verweigert";
+        console.error(err);
     }
-  }
-
-  if (candidates.length < 10) {
-    lostFrames++;
-    ballSeenFrames = 0;
-    searchBox = null;
-    $('track').textContent = 'Ball verloren';
-    $('track').className = 'pill bad';
-    $('quality').textContent = 'Qualität: niedrig';
-    $('quality').className = 'pill bad';
-    return null;
-  }
-
-  // Größten zusammenhängenden Cluster suchen, damit kleine Störungen ignoriert werden.
-  const cluster = largestCluster(candidates, scale * 2.8);
-  if (!cluster || cluster.points.length < 10) return null;
-
-  let sumX=0, sumY=0, minX=w, minY=h, maxX=0, maxY=0;
-  for (const p of cluster.points) {
-    sumX += p.x; sumY += p.y;
-    if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x; if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y;
-  }
-
-  const cx = sumX / cluster.points.length;
-  const cy = sumY / cluster.points.length;
-  const bw = maxX - minX;
-  const bh = maxY - minY;
-  const size = Math.max(bw,bh);
-  const roundness = Math.min(bw,bh) / Math.max(1, Math.max(bw,bh));
-
-  if (size < minSize || roundness < 0.28) {
-    lostFrames++;
-    ballSeenFrames = 0;
-    $('track').textContent = 'Störung ignoriert';
-    $('track').className = 'pill bad';
-    return null;
-  }
-
-  const margin = Math.max(90, size * 3.2);
-  searchBox = { x0:cx-margin, y0:cy-margin, x1:cx+margin, y1:cy+margin };
-  ballSeenFrames++;
-  lostFrames = 0;
-
-  const quality = Math.min(100, Math.round(cluster.points.length / 4 + roundness * 50));
-  $('track').textContent = `Ball erkannt · Größe ${Math.round(size)}`;
-  $('track').className = 'pill good';
-  $('quality').textContent = `Qualität: ${quality}%`;
-  $('quality').className = quality > 45 ? 'pill good' : 'pill';
-
-  return { x:cx, y:cy, size, pixels:cluster.points.length, minX, minY, maxX, maxY, roundness };
 }
-
-function isSimilarColor(r,g,b,tol){
-  const br = r + g + b + 1;
-  const tr = targetColor.r + targetColor.g + targetColor.b + 1;
-
-  // Farbart unabhängig von Helligkeit
-  const nr = r/br, ng = g/br, nb = b/br;
-  const trr = targetColor.r/tr, tg = targetColor.g/tr, tb = targetColor.b/tr;
-  const chromaDist = Math.sqrt((nr-trr)**2 + (ng-tg)**2 + (nb-tb)**2) * 255;
-
-  // Helligkeit darf abweichen, aber nicht komplett anders sein
-  const brightnessDist = Math.abs(br - tr) / 3;
-
-  return chromaDist < tol/2.0 && brightnessDist < tol*3.5;
-}
-
-function largestCluster(points, maxDist){
-  // Schnelle Grid-Clusterung statt teurer Vollsuche.
-  const cell = Math.max(8, Math.round(maxDist));
-  const map = new Map();
-  for (const p of points) {
-    const key = `${Math.floor(p.x/cell)},${Math.floor(p.y/cell)}`;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(p);
-  }
-
-  let best = null;
-  for (const [key, pts] of map.entries()) {
-    const [cx,cy] = key.split(',').map(Number);
-    let merged = [];
-    for (let yy=cy-1; yy<=cy+1; yy++) {
-      for (let xx=cx-1; xx<=cx+1; xx++) {
-        const near = map.get(`${xx},${yy}`);
-        if (near) merged = merged.concat(near);
-      }
+function stopListening(){
+    running = false;
+    if(animationFrame){
+        cancelAnimationFrame(animationFrame);
     }
-    if (!best || merged.length > best.points.length) best = { points: merged };
-  }
-  return best;
+    if(audioContext){
+        audioContext.close();
+    }
+    statusText.textContent =
+        "Gestoppt";
 }
-
-function smoothPosition(ball){
-  if (!smoothBall) {
-    smoothBall = {...ball};
-    return ball;
-  }
-  const a = 0.42;
-  smoothBall = {
-    ...ball,
-    x: smoothBall.x * (1-a) + ball.x * a,
-    y: smoothBall.y * (1-a) + ball.y * a,
-    size: smoothBall.size * (1-a) + ball.size * a
-  };
-  return smoothBall;
+function detectHits(){
+    if(!running) return;
+    analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for(let i=0;i<dataArray.length;i++){
+        sum += dataArray[i];
+    }
+    let volume =
+        sum / dataArray.length;
+    const sensitivity =
+        parseFloat(
+            sensitivitySlider.value
+        );
+    volume *= sensitivity;
+    volumeText.textContent =
+        volume.toFixed(0);
+    meter.style.width =
+        Math.min(volume,100) + "%";
+    const threshold =
+        parseFloat(
+            thresholdSlider.value
+        );
+    const cooldown =
+        parseInt(
+            cooldownSlider.value
+        );
+    const now = Date.now();
+    const risingEdge =
+        volume > threshold &&
+        volume > previousVolume * 1.15;
+    if(
+        risingEdge &&
+        now - lastHitTime > cooldown
+    ){
+        count++;
+        counter.textContent = count;
+        counter.classList.add("hitFlash");
+        setTimeout(()=>{
+            counter.classList.remove("hitFlash");
+        },150);
+        lastHitTime = now;
+    }
+    previousVolume = volume;
+    animationFrame =
+        requestAnimationFrame(
+            detectHits
+        );
 }
-
-function updateCounter(ball, lineY){
-  const now = performance.now();
-  recentY.push(ball.y);
-  if (recentY.length > 6) recentY.shift();
-
-  if (lastY === null) { lastY = ball.y; return; }
-
-  const velocity = recentY.length >= 2 ? recentY[recentY.length-1] - recentY[0] : 0;
-  const direction = velocity > 5 ? 'runter' : velocity < -5 ? 'hoch' : lastDirection;
-  $('direction').textContent = 'Richtung: ' + (direction || '--');
-
-  // Gezählt wird nur, wenn der Ball von unten nach oben durch die Linie geht.
-  // Dadurch zählen wir nach dem Fußkontakt, nicht beim Fallenlassen.
-  const crossedUp = lastY > lineY && ball.y <= lineY;
-  const stableTrack = ballSeenFrames >= 4;
-  const notTooSoon = now - lastCrossTime > 260;
-  const movingUp = direction === 'hoch';
-  const goodSize = ball.size >= Number($('minSize').value);
-
-  if (crossedUp && movingUp && stableTrack && notTooSoon && goodSize) {
-    count++;
-    $('count').textContent = count;
-    lastCrossTime = now;
-    if (navigator.vibrate) navigator.vibrate(18);
-  }
-
-  lastY = ball.y;
-  lastDirection = direction;
+document
+.getElementById("startBtn")
+.addEventListener(
+"click",
+startListening
+);
+document
+.getElementById("stopBtn")
+.addEventListener(
+"click",
+stopListening
+);
+document
+.getElementById("resetBtn")
+.addEventListener(
+"click",
+()=>{
+    count = 0;
+    counter.textContent = "0";
 }
-
-function drawOverlay(ball, lineY){
-  const w = overlay.width, h = overlay.height;
-
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = 'rgba(10,132,255,.95)';
-  ctx.beginPath();
-  ctx.moveTo(0,lineY);
-  ctx.lineTo(w,lineY);
-  ctx.stroke();
-
-  ctx.fillStyle = 'rgba(10,132,255,.95)';
-  ctx.font = '28px system-ui';
-  ctx.fillText('Zähllinie', 18, lineY - 12);
-
-  if (searchBox && targetColor) {
-    ctx.strokeStyle = 'rgba(255,255,255,.22)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(searchBox.x0, searchBox.y0, searchBox.x1-searchBox.x0, searchBox.y1-searchBox.y0);
-  }
-
-  if (ball) {
-    ctx.strokeStyle = 'rgba(52,199,89,.95)';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, Math.max(16, ball.size/2), 0, Math.PI*2);
-    ctx.stroke();
-
-    ctx.fillStyle = 'rgba(52,199,89,.95)';
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, 6, 0, Math.PI*2);
-    ctx.fill();
-  }
-}
+);
 </script>
 </body>
 </html>
