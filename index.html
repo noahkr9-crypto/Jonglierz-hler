@@ -1,315 +1,288 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tischtennis Jonglier-Counter</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🏓 Tischtennis Jonglier-Counter</title>
 <style>
 :root{
-    --bg:#0f172a;
-    --card:#1e293b;
-    --accent:#38bdf8;
-    --accent2:#22c55e;
-    --text:#f8fafc;
-    --muted:#94a3b8;
+  --bg:#08111f;
+  --card:#132238;
+  --text:#f5f7fb;
+  --muted:#9fb0c7;
+  --accent:#4cc9f0;
+  --success:#4ade80;
+  --danger:#ef4444;
 }
 *{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
 }
 body{
-    background:linear-gradient(135deg,#020617,#0f172a);
-    color:var(--text);
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    padding:20px;
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  background:linear-gradient(180deg,#07101d,#132238);
+  color:var(--text);
+  min-height:100vh;
+  padding:20px;
 }
-.container{
-    width:100%;
-    max-width:700px;
+.wrapper{
+  max-width:800px;
+  margin:auto;
 }
 .card{
-    background:rgba(30,41,59,.9);
-    backdrop-filter:blur(12px);
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:24px;
-    padding:24px;
-    box-shadow:0 20px 60px rgba(0,0,0,.35);
+  background:var(--card);
+  border-radius:24px;
+  padding:24px;
+  box-shadow:0 20px 50px rgba(0,0,0,.35);
 }
 h1{
-    text-align:center;
-    margin-bottom:20px;
-    font-size:2rem;
+  text-align:center;
+  margin-bottom:20px;
 }
 .counter{
-    text-align:center;
-    font-size:6rem;
-    font-weight:800;
-    color:var(--accent);
-    margin:20px 0;
+  text-align:center;
+  font-size:96px;
+  font-weight:800;
+  color:var(--accent);
+  margin:10px 0;
+}
+.highscore{
+  text-align:center;
+  color:var(--muted);
+  margin-bottom:20px;
 }
 .status{
-    text-align:center;
-    color:var(--muted);
-    margin-bottom:15px;
+  text-align:center;
+  margin-bottom:20px;
 }
-.controls{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-    margin-bottom:20px;
+.buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
 }
 button{
-    border:none;
-    border-radius:16px;
-    padding:16px;
-    font-size:1rem;
-    font-weight:700;
-    cursor:pointer;
+  border:none;
+  border-radius:16px;
+  padding:18px;
+  font-size:18px;
+  font-weight:700;
 }
 .start{
-    background:var(--accent2);
-    color:white;
+  background:var(--success);
 }
 .stop{
-    background:#ef4444;
-    color:white;
+  background:var(--danger);
+  color:white;
 }
 .reset{
-    background:#334155;
-    color:white;
-    grid-column:span 2;
+  margin-top:12px;
+  width:100%;
+  background:#32445e;
+  color:white;
 }
 .section{
-    margin-top:20px;
+  margin-top:28px;
 }
 label{
-    display:flex;
-    justify-content:space-between;
-    margin-bottom:8px;
-    font-size:.95rem;
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:8px;
 }
 input[type=range]{
-    width:100%;
-    margin-bottom:20px;
+  width:100%;
+  height:40px;
 }
-.meterWrap{
-    background:#0f172a;
-    border-radius:14px;
-    overflow:hidden;
-    height:26px;
+.meter-bg{
+  height:28px;
+  background:#08111f;
+  border-radius:14px;
+  overflow:hidden;
 }
 .meter{
-    height:100%;
-    width:0%;
-    background:linear-gradient(90deg,#22c55e,#38bdf8);
-    transition:width .05s linear;
+  width:0%;
+  height:100%;
+  background:linear-gradient(90deg,#4ade80,#4cc9f0);
 }
-.info{
-    margin-top:18px;
-    color:var(--muted);
-    font-size:.9rem;
-    line-height:1.5;
-}
-.hitFlash{
-    animation:flash .15s ease;
-}
-@keyframes flash{
-    from{transform:scale(1.08);}
-    to{transform:scale(1);}
+.tip{
+  margin-top:20px;
+  color:var(--muted);
+  line-height:1.5;
 }
 </style>
 </head>
 <body>
-<div class="container">
+<div class="wrapper">
 <div class="card">
 <h1>🏓 Jonglier Counter</h1>
-<div class="counter" id="counter">0</div>
+<div class="counter" id="count">0</div>
+<div class="highscore">
+Highscore: <span id="highscore">0</span>
+</div>
 <div class="status" id="status">
 Bereit
 </div>
-<div class="controls">
-<button class="start" id="startBtn">
-🎤 Start
-</button>
-<button class="stop" id="stopBtn">
-⏹ Stop
-</button>
+<div class="buttons">
+<button class="start" id="startBtn">🎤 Start</button>
+<button class="stop" id="stopBtn">⏹ Stop</button>
+</div>
 <button class="reset" id="resetBtn">
 🔄 Reset
 </button>
-</div>
 <div class="section">
 <label>
 <span>Empfindlichkeit</span>
-<span id="sensitivityValue">1.5</span>
+<span id="sensVal">2.0</span>
 </label>
 <label>
 <span>Schwelle</span>
-<span id="thresholdValue">30</span>
+<span id="thrVal">18</span>
 </label>
 <label>
 <span>Mindestabstand (ms)</span>
-<span id="cooldownValue">120</span>
+<span id="coolVal">120</span>
 </label>
 </div>
 <div class="section">
 <label>
-<span>Aktuelle Lautstärke</span>
-<span id="volumeText">0</span>
+<span>Mikrofonpegel</span>
+<span id="volText">0</span>
 </label>
-<div class="meterWrap">
+<div class="meter-bg">
 <div class="meter" id="meter"></div>
 </div>
 </div>
-<div class="info">
-Tipp: Stelle das iPhone 30–80 cm entfernt auf. <br>
-Falls doppelt gezählt wird, erhöhe den Mindestabstand. <br>
-Falls Treffer fehlen, erhöhe die Empfindlichkeit oder senke die Schwelle.
+<div class="tip">
+Beim ersten Start muss Safari nach der Mikrofonberechtigung fragen.
+Wenn nichts passiert, prüfe:
+Einstellungen → Safari → Mikrofon → Erlauben.
 </div>
 </div>
 </div>
 <script>
 let audioContext;
 let analyser;
-let microphone;
+let mic;
 let dataArray;
-let animationFrame;
-let running = false;
-let count = 0;
-let lastHitTime = 0;
-let previousVolume = 0;
-const counter = document.getElementById("counter");
-const meter = document.getElementById("meter");
-const volumeText = document.getElementById("volumeText");
-const statusText = document.getElementById("status");
-const thresholdSlider = document.getElementById("threshold");
-const sensitivitySlider = document.getElementById("sensitivity");
-const cooldownSlider = document.getElementById("cooldown");
+let running=false;
+let raf;
+let count=0;
+let lastHit=0;
+let previous=0;
+const countEl=document.getElementById("count");
+const statusEl=document.getElementById("status");
+const meter=document.getElementById("meter");
+const volText=document.getElementById("volText");
+const sens=document.getElementById("sens");
+const thr=document.getElementById("thr");
+const cool=document.getElementById("cool");
+const sensVal=document.getElementById("sensVal");
+const thrVal=document.getElementById("thrVal");
+const coolVal=document.getElementById("coolVal");
+const highscoreEl=document.getElementById("highscore");
+let highscore=
+parseInt(localStorage.getItem("tt_highscore")||"0");
+highscoreEl.textContent=highscore;
 function updateLabels(){
-    document.getElementById("thresholdValue").textContent =
-        thresholdSlider.value;
-    document.getElementById("sensitivityValue").textContent =
-        sensitivitySlider.value;
-    document.getElementById("cooldownValue").textContent =
-        cooldownSlider.value;
+  sensVal.textContent=sens.value;
+  thrVal.textContent=thr.value;
+  coolVal.textContent=cool.value;
 }
 updateLabels();
-thresholdSlider.oninput = updateLabels;
-sensitivitySlider.oninput = updateLabels;
-cooldownSlider.oninput = updateLabels;
-async function startListening(){
-    if(running) return;
-    try{
-        const stream =
-            await navigator.mediaDevices.getUserMedia({
-                audio:true
-            });
-        audioContext =
-            new (window.AudioContext ||
-            window.webkitAudioContext)();
-        analyser =
-            audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        microphone =
-            audioContext.createMediaStreamSource(stream);
-        microphone.connect(analyser);
-        dataArray =
-            new Uint8Array(analyser.frequencyBinCount);
-        running = true;
-        statusText.textContent =
-            "🎧 Mikrofon aktiv";
-        detectHits();
-    }catch(err){
-        statusText.textContent =
-            "❌ Mikrofon-Zugriff verweigert";
-        console.error(err);
-    }
+sens.oninput=updateLabels;
+thr.oninput=updateLabels;
+cool.oninput=updateLabels;
+async function start(){
+  if(running) return;
+  try{
+    const stream=
+      await navigator.mediaDevices.getUserMedia({
+        audio:true
+      });
+    audioContext=
+      new(window.AudioContext||
+      window.webkitAudioContext)();
+    await audioContext.resume();
+    analyser=
+      audioContext.createAnalyser();
+    analyser.fftSize=1024;
+    mic=
+      audioContext.createMediaStreamSource(stream);
+    mic.connect(analyser);
+    dataArray=
+      new Uint8Array(analyser.frequencyBinCount);
+    running=true;
+    statusEl.textContent=
+      "🎧 Mikrofon aktiv";
+    detect();
+  }catch(err){
+    console.error(err);
+    statusEl.textContent=
+      "❌ Mikrofonzugriff fehlgeschlagen";
+  }
 }
-function stopListening(){
-    running = false;
-    if(animationFrame){
-        cancelAnimationFrame(animationFrame);
-    }
-    if(audioContext){
-        audioContext.close();
-    }
-    statusText.textContent =
-        "Gestoppt";
+function stop(){
+  running=false;
+  if(raf){
+    cancelAnimationFrame(raf);
+  }
+  if(audioContext){
+    audioContext.close();
+  }
+  statusEl.textContent="Gestoppt";
 }
-function detectHits(){
-    if(!running) return;
-    analyser.getByteFrequencyData(dataArray);
-    let sum = 0;
-    for(let i=0;i<dataArray.length;i++){
-        sum += dataArray[i];
+function detect(){
+  if(!running) return;
+  analyser.getByteFrequencyData(dataArray);
+  let sum=0;
+  for(let i=0;i<dataArray.length;i++){
+    sum+=dataArray[i];
+  }
+  let volume=
+    (sum/dataArray.length)*
+    parseFloat(sens.value);
+  volume=Math.min(volume,100);
+  volText.textContent=
+    Math.round(volume);
+  meter.style.width=
+    volume+"%";
+  const threshold=
+    parseFloat(thr.value);
+  const cooldown=
+    parseInt(cool.value);
+  const now=Date.now();
+  const hit=
+    volume>threshold &&
+    volume>(previous*1.15);
+  if(hit && now-lastHit>cooldown){
+    count++;
+    countEl.textContent=count;
+    if(count>highscore){
+      highscore=count;
+      localStorage.setItem(
+        "tt_highscore",
+        highscore
+      );
+      highscoreEl.textContent=
+        highscore;
     }
-    let volume =
-        sum / dataArray.length;
-    const sensitivity =
-        parseFloat(
-            sensitivitySlider.value
-        );
-    volume *= sensitivity;
-    volumeText.textContent =
-        volume.toFixed(0);
-    meter.style.width =
-        Math.min(volume,100) + "%";
-    const threshold =
-        parseFloat(
-            thresholdSlider.value
-        );
-    const cooldown =
-        parseInt(
-            cooldownSlider.value
-        );
-    const now = Date.now();
-    const risingEdge =
-        volume > threshold &&
-        volume > previousVolume * 1.15;
-    if(
-        risingEdge &&
-        now - lastHitTime > cooldown
-    ){
-        count++;
-        counter.textContent = count;
-        counter.classList.add("hitFlash");
-        setTimeout(()=>{
-            counter.classList.remove("hitFlash");
-        },150);
-        lastHitTime = now;
-    }
-    previousVolume = volume;
-    animationFrame =
-        requestAnimationFrame(
-            detectHits
-        );
+    lastHit=now;
+  }
+  previous=volume;
+  raf=requestAnimationFrame(detect);
 }
 document
 .getElementById("startBtn")
-.addEventListener(
-"click",
-startListening
-);
+.addEventListener("click",start);
 document
 .getElementById("stopBtn")
-.addEventListener(
-"click",
-stopListening
-);
+.addEventListener("click",stop);
 document
 .getElementById("resetBtn")
-.addEventListener(
-"click",
-()=>{
-    count = 0;
-    counter.textContent = "0";
-}
-);
+.addEventListener("click",()=>{
+  count=0;
+  countEl.textContent="0";
+});
 </script>
 </body>
 </html>
